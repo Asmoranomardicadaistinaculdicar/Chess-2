@@ -71,8 +71,6 @@ int main(int argc, char** argv) {
 				cout << "Boi we out here not rendering" << endl;
 		}
 
-		//icon.render(renderer);
-
 		//Render all items within the renderer to the screen
 		SDL_RenderPresent(renderer);
 	}

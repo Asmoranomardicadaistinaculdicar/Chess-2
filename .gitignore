@@ -41,3 +41,7 @@ Chess-2/x64/Debug/vc143.pdb
 x64/Debug/Chess-2.exe
 x64/Debug/Chess-2.pdb
 SDL2.dll
+*.vsidx
+*.ipch
+*.log
+Chess-2/x64/Debug/Chess-2.vcxproj.FileListAbsolute.txt
