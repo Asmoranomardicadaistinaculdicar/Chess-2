@@ -3,12 +3,10 @@
 
 #include <SDL.h>
 #include <iostream>
-#include <fstream>
 #include <map>
 #include <vector>
 #include <stdint.h>
 
-#include "../utils.h"
 #include "../GUI/Displayable.h"
 
 //Define the Control namespace
@@ -53,15 +51,13 @@ namespace ctrl {
 		*   layer container with a Layer #0, and empties the error
 		*/
 		PegBar() {
-			this->layers.push_back(
-				std::map<std::string, GUI::Displayable*>()
-			);
+			this->makeLayer(0);
 			this->error = "";
 		};
 		/* Destroys all Displayables within the structure */
 		~PegBar() {
 			for (int x = 0; x < this->layers.size(); x++)
-				for (int y = this->layerKeys.size() - 1; y >= 0; y--)
+				for (int y = 0; y < this->layerKeys[x].size(); y++)
 					delete this->layers[x][this->layerKeys[x][y]];
 		};
 

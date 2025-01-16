@@ -6,6 +6,7 @@
 
 #include "./assets/scripts/utils.h"
 #include "./assets/scripts/GUI/Displayable.h"
+#include "./assets/scripts/Control/Level.h"
 
 using std::cout;
 using std::endl;
@@ -28,18 +29,18 @@ int main(int argc, char** argv) {
 	renderer = SDL_CreateRenderer(window, -1, 0);
 	surface = SDL_GetWindowSurface(window);
 
-	//Create a list of displayables to render
-	std::vector<GUI::Displayable> dispVec;
-
 	//Add the main menu graphic to the display list
-	GUI::Displayable icon = GUI::Displayable(
+	GUI::Displayable* icon = new GUI::Displayable(
 			renderer, "./assets/texture/screens/main-menu.png",
 			{ 0, 0, util::SCREEN_WIDTH, util::SCREEN_HEIGHT }
 		);
-	dispVec.push_back(icon);
+
+	ctrl::PegBar assets;
+	assets.insertIntoLayer("menu-screen", icon, 0);
 
 	//Create the main game loop
 	bool RUNNING = true;
+	int counter = 0;
 	while (RUNNING) {
 		//Iterate through the list of events, handling each independently
 		SDL_Event event;
@@ -59,21 +60,25 @@ int main(int argc, char** argv) {
 			else if (event.type == SDL_MOUSEBUTTONDOWN)
 				cout << "You clicked the mouse" << endl;
 		}
-		
+
 		//Fill the background of the window
 		SDL_SetRenderDrawColor(renderer, 0xED, 0xDF, 0xF7, 0xFF);
 		SDL_RenderClear(renderer);
 
-		//Render each item in the displayable vector onto the render surface
-		for (int x = 0; x < dispVec.size(); x++) {
-			if (!dispVec[x].render(renderer))
-				cout << dispVec[x].getError() << endl;
-				cout << "Boi we out here not rendering" << endl;
+		if (counter >= 1000) {
+			assets.makeLayer(1);
+			assets.dropLayer(0, true);
 		}
+
+		//Render each item in the asset list onto the render surface
+		if (!assets.render(renderer))
+			cout << assets.getError();
 
 		//Render all items within the renderer to the screen
 		SDL_RenderPresent(renderer);
+		counter++;
 	}
+
 
 	//Clean up the memory to prevent leaks
 	SDL_DestroyWindow(window);

@@ -1,11 +1,9 @@
 #include <SDL.h>
 #include <iostream>
-#include <fstream>
 #include <map>
 #include <vector>
 #include <stdint.h>
 
-#include "../utils.h"
 #include "../GUI/Displayable.h"
 #include "./Level.h"
 
@@ -14,12 +12,15 @@ using std::string;
 
 //Define the Control namespace
 namespace ctrl {
+	/*-------------------------------*/
+	/*   Peg Bar Class Definitions   */
+	/*-------------------------------*/
 
+	//Private
 	bool PegBar::layerExists(uint16_t i) const { return i < this->layers.size(); }
-
 	uint16_t PegBar::countLayers() const { return this->layers.size(); }
 
-
+	//Public
 	uint16_t PegBar::makeLayer(uint16_t i) {
 		//Store the index, may be changed later
 		uint16_t index = i;
@@ -51,7 +52,6 @@ namespace ctrl {
 		//Return the true index of the new layer
 		return index;
 	}
-
 	bool PegBar::dropLayer(uint16_t i, bool wipeAssets) {
 		if (!this->layerExists(i)) {
 			this->error = "PegBar.dropLayer(): Layer cannot be removed, does not exist";
@@ -83,7 +83,6 @@ namespace ctrl {
 
 		return true;
 	}
-
 	bool PegBar::insertIntoLayer(string key, Displayable* disp, uint16_t i) {
 		//Ensure that the layer already exists
 		if (!layerExists(i)) {
@@ -111,7 +110,6 @@ namespace ctrl {
 
 		return true;
 	}
-
 	bool PegBar::removeAsset(string key, bool wipeAsset) {
 		//Get the layer index of the asset being removed
 		int32_t i = this->getLayerByKey(key);
@@ -135,7 +133,6 @@ namespace ctrl {
 
 		return true;
 	}
-
 	bool PegBar::render(SDL_Renderer* renderer) {
 		bool failed = false;
 
@@ -155,7 +152,6 @@ namespace ctrl {
 		//Return the opposite of whether it failed
 		return !failed;
 	}
-
 	Displayable* PegBar::getAssetByKey(string key) {
 		//Access the index of the layer containing the Displayable
 		int32_t l = this->getLayerByKey(key);
@@ -168,7 +164,6 @@ namespace ctrl {
 		//Return the pointer associated with the key
 		return this->layers[l][key];
 	}
-
 	int32_t PegBar::getLayerByKey(string key) const {
 		//Initialize the index to a null value
 		int32_t index = -1;
@@ -178,6 +173,5 @@ namespace ctrl {
 		//Return the index. If not found, this value will remain -1
 		return index;
 	}
-
 	string PegBar::getError() const { return this->error; }
 }

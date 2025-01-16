@@ -13,8 +13,8 @@ namespace util {
 	using std::endl;
 
 	//Define global variables for screen width and height
-	int SCREEN_WIDTH = 1080;
-	int SCREEN_HEIGHT = 720;
+	static int SCREEN_WIDTH = 1080;
+	static int SCREEN_HEIGHT = 720;
 
 	/* Initializes an SDL_Window that can be displayed for the player
 	* 
@@ -31,7 +31,7 @@ namespace util {
 	* 
 	* Returns a pointer to the Window provided
 	*/
-	SDL_Window* makeWindow(const char* caption, int width, int height) {
+	inline SDL_Window* makeWindow(const char* caption, int width, int height) {
 		//Create a window value
 		SDL_Window* window = nullptr;
 
@@ -69,7 +69,7 @@ namespace util {
 	* - filename - the path to the image being loaded onto the texture
 	* - renderer - a pointer to the renderer that this texture is a part of
 	*/
-	SDL_Texture* LoadTexture(const char* filename, SDL_Renderer* renderer) {
+	inline SDL_Texture* LoadTexture(const char* filename, SDL_Renderer* renderer) {
 		//Store the width, height, and bytes per pixel
 		int width, height, bytesPerPixel;
 		void* data = stbi_load(filename, &width, &height, &bytesPerPixel, 0);
@@ -131,7 +131,9 @@ namespace util {
 	* - renderer - a pointer to the renderer that this texture is a part of
 	* - alpha - an integer that represents the opacity of the texture
 	*/
-	SDL_Texture* LoadTexture(const char* filename, SDL_Renderer* renderer, int32_t alpha) {
+	inline SDL_Texture* LoadTexture(
+		const char* filename, SDL_Renderer* renderer, int32_t alpha
+		) {
 		//Store the width, height, and bytes per pixel
 		int width, height, bytesPerPixel;
 		void* data = stbi_load(filename, &width, &height, &bytesPerPixel, 0);

@@ -46,3 +46,4 @@ SDL2.dll
 *.log
 Chess-2/x64/Debug/Chess-2.vcxproj.FileListAbsolute.txt
 *.tlog
+*.obj
