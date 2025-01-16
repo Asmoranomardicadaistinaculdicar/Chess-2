@@ -79,8 +79,12 @@ namespace ctrl {
 		* 
 		* Param:
 		* - i - the position of the layer being added
+		* 
+		* Returns the ID of the newly created layer. Generally, this will be the same
+		*  as i, but if i >= this->layers.size() then it will be equal to
+		*  this->layers.size()
 		*/
-		void newLayer(uint16_t i);
+		uint16_t makeLayer(uint16_t i);
 
 		/*Destroys a layer at the provided index. If the layer does not exist,
 		*  then the function exits. If the layer does exist, all layers above are
@@ -97,8 +101,10 @@ namespace ctrl {
 		* - i - the index of the layer that is being destroyed
 		* - wipeAssets - determines whether the Displayables on the layer will be
 		*   destroyed along with the layer
+		* 
+		* Returns true IFF the layer existed and was successfully removed, false OW
 		*/
-		void dropLayer(uint16_t i, bool wipeAssets);
+		bool dropLayer(uint16_t i, bool wipeAssets);
 		
 		/*Inserts a Displayable into the specified layer, associating it with the
 		*  provided Key. 
@@ -122,6 +128,25 @@ namespace ctrl {
 		*/
 		bool insertIntoLayer(std::string key, GUI::Displayable* disp, uint16_t i);
 
+		/*Removes a Displayable that is associated from a provided key from
+		*  the structure.
+		* 
+		* Precondition:
+		* - key must be associated with a Displayable in the structure
+		* 
+		* Postcondition:
+		* - the Displayable associated with 'key' is removed from the structure
+		* - The Displayable is globally destroyed IFF wipeAsset == true
+		* 
+		* Params:
+		* - key - the string value used to identify the Displayable being searched for
+		* - wipeAsset - a value that determines whether the Displayable is globally
+		*   destroyed
+		* 
+		* Returns true IFF the asset existed and was removed successfully, false OW
+		*/
+		bool removeAsset(std::string key, bool wipeAsset);
+
 		/*Renders all the displayables in the structure onto the provided renderer
 		*  so they can be printed to the game surface. Lower layer numbers are added
 		*  first, placing them lower on the game screen than higher numbered layers.
@@ -133,7 +158,7 @@ namespace ctrl {
 		* - renderer != nullptr
 		* 
 		* Postconditions:
-		* - renderer ill now render all Displayables form the strucrure on calls
+		* - renderer will now render all Displayables form the strucrure on calls
 		*   to SDL_RenderPresent() and similar functions
 		* 
 		* Params:
@@ -143,16 +168,25 @@ namespace ctrl {
 		*/
 		bool render(SDL_Renderer* renderer);
 
-		/*Retrieves a Displayable by its associated key. The key need not exist
-		*  in the structure for this function to work.
+		/*Retrieves a Displayable by its associated key.
 		* 
-		* Param:
+		* Params:
 		* - key - the string key associated with the Displayable being retrieved
 		* 
 		* Returns a pointer to the Displayable associated with the key IFF it exists
 		*  in the structure, nullptr OW
 		*/
-		GUI::Displayable* getAssetByKey(std::string key) const;
+		GUI::Displayable* getAssetByKey(std::string key);
+
+		/*Retrieves the layer that the Displayable associated with key is found on.
+		* 
+		* Params:
+		* - key - the string key associated with the Displayable being retrieved
+		* 
+		* Returns the index of the layer that the Displayable is found on IFF the key
+		*  exists in the structure, -1 OW
+		*/
+		int32_t getLayerByKey(std::string key) const;
 
 		//Accesses the most recent error that has occurred in this Displayable
 		std::string getError() const;
@@ -161,7 +195,7 @@ namespace ctrl {
 	class Level {
 	protected:
 		SDL_Renderer* renderer;
-		PegBar sprites;
+		//PegBar sprites;
 
 	public:
 		virtual void handleClick() = 0;
