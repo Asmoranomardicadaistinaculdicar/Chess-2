@@ -5,16 +5,19 @@
 #include "../dependencies/stb_image.h"
 #include <iostream>
 #include <fstream>
+#include <vector>
+
+using std::cout;
+using std::endl;
 
 //Define the utility namespace
 namespace util {
 
-	using std::cout;
-	using std::endl;
-
 	//Define global variables for screen width and height
 	static int SCREEN_WIDTH = 1080;
 	static int SCREEN_HEIGHT = 720;
+
+	static std::string ANONYMOUS = "_";
 
 	/* Initializes an SDL_Window that can be displayed for the player
 	* 
@@ -177,6 +180,23 @@ namespace util {
 
 		//Return a pointer to the allocated texture
 		return texture;
+	}
+
+	inline std::vector<std::string> unpackState(std::string state) {
+		std::vector<std::string> textvec;
+		
+		std::string currstr = "";
+		for (char c : state) {
+			if (c != ' ')
+				currstr += c;
+			else {
+				textvec.push_back(currstr);
+				currstr = "";
+			}
+		}
+		textvec.push_back(currstr);
+		
+		return textvec;
 	}
 }
 

@@ -6,6 +6,7 @@
 
 #include "./assets/scripts/utils.h"
 #include "./assets/scripts/GUI/Displayable.h"
+#include "./assets/scripts/GUI/Layering.h"
 #include "./assets/scripts/Control/Level.h"
 
 using std::cout;
@@ -29,18 +30,10 @@ int main(int argc, char** argv) {
 	renderer = SDL_CreateRenderer(window, -1, 0);
 	surface = SDL_GetWindowSurface(window);
 
-	//Add the main menu graphic to the display list
-	GUI::Displayable* icon = new GUI::Displayable(
-			renderer, "./assets/texture/screens/main-menu.png",
-			{ 0, 0, util::SCREEN_WIDTH, util::SCREEN_HEIGHT }
-		);
-
-	ctrl::PegBar assets;
-	assets.insertIntoLayer("menu-screen", icon, 0);
+	ctrl::Level* currlvl = new ctrl::mainMenu(renderer);
 
 	//Create the main game loop
 	bool RUNNING = true;
-	int counter = 0;
 	while (RUNNING) {
 		//Iterate through the list of events, handling each independently
 		SDL_Event event;
@@ -58,27 +51,34 @@ int main(int argc, char** argv) {
 
 			//Handle mouse events
 			else if (event.type == SDL_MOUSEBUTTONDOWN)
-				cout << "You clicked the mouse" << endl;
+				currlvl->handleClick();
 		}
+
+		currlvl->update();
 
 		//Fill the background of the window
 		SDL_SetRenderDrawColor(renderer, 0xED, 0xDF, 0xF7, 0xFF);
 		SDL_RenderClear(renderer);
 
-		if (counter >= 1000) {
-			assets.makeLayer(1);
-			assets.dropLayer(0, true);
-		}
-
 		//Render each item in the asset list onto the render surface
-		if (!assets.render(renderer))
-			cout << assets.getError();
+		currlvl->render();
 
 		//Render all items within the renderer to the screen
 		SDL_RenderPresent(renderer);
-		counter++;
+
+		if (currlvl->getState() == util::ANONYMOUS) continue;
+		
+		std::vector<string> newstate = util::unpackState(currlvl->getState());
+		
+		if (newstate[0] == "goto") {
+			if (newstate[1] == "gameselect") {
+				delete currlvl;
+				currlvl = new ctrl::gameSelect(renderer);
+			}
+		}
 	}
 
+	delete currlvl;
 
 	//Clean up the memory to prevent leaks
 	SDL_DestroyWindow(window);

@@ -4,14 +4,24 @@
 #include <SDL.h>
 #include <iostream>
 #include <fstream>
+#include <vector>
+#include <map>
 
 #include "../utils.h"
 
 using std::cout;
 using std::endl;
+using std::vector;
+using std::map;
+using std::string;
 
 //Define the GUI namespace
 namespace GUI {
+
+	enum DisplayableType {
+		DISP_BASIC,
+		DISP_BUTTON
+	};
 
 	/* The base class for an object that can be displayed on screen. Contains
 	*   position and size information/offsets, as well as a texture to render.
@@ -31,7 +41,8 @@ namespace GUI {
 		bool destroyOnDrop; //Whether the texture will be destroyed when
 		// dropTexture() is called. True by default
 
-		std::string error; //Stores any error present with the current displayable
+		string error; //Stores any error present with the current displayable
+		DisplayableType type;
 
 	public:
 		/*Default constructor, initializes all fields to null values*/
@@ -49,6 +60,8 @@ namespace GUI {
 			this->img = nullptr;
 			this->destroyOnDrop = true;
 			this->error = "";
+
+			this->type = DISP_BASIC;
 		}
 
 		/*Texture constructor, loads the texture from the path and sets positional
@@ -70,6 +83,8 @@ namespace GUI {
 				this->error = "Displayable(): Texture failed to load";
 			this->destroyOnDrop = true;
 			this->error = "";
+
+			this->type = DISP_BASIC;
 		}
 
 		/*Positional constructor, unpacks the provided rect and initializes
@@ -89,6 +104,8 @@ namespace GUI {
 			this->img = nullptr;
 			this->destroyOnDrop = true;
 			this->error = "";
+
+			this->type = DISP_BASIC;
 		}
 
 		/*Sized constructor, stores the width and height, initializes the texture
@@ -108,6 +125,8 @@ namespace GUI {
 			this->img = nullptr;
 			this->destroyOnDrop = true;
 			this->error = "";
+
+			this->type = DISP_BASIC;
 		}
 
 		/*Texture and size constructor, loads the texture and stores sizing
@@ -129,6 +148,8 @@ namespace GUI {
 				this->error = "Displayable(): Texture failed to load";
 			this->destroyOnDrop = true;
 			this->error = "";
+
+			this->type = DISP_BASIC;
 		}
 
 		/*Complete constructor, loads the texture and unpacks the provided rect
@@ -150,6 +171,8 @@ namespace GUI {
 				this->error = "Displayable(): Texture failed to load";
 			this->destroyOnDrop = true;
 			this->error = "";
+
+			this->type = DISP_BASIC;
 		}
 
 		//Destroys the texture if speficied to prevent memory leaks
@@ -295,7 +318,321 @@ namespace GUI {
 		void setHOffset(int h);
 
 		//Accesses the most recent error that has occurred in this Displayable
-		std::string getError() const;
+		string getError() const;
+	};
+
+	/* The class for a clickable rectangular button. It contains all the data
+	*   from a basic Displayable, as well as a basic collision definition for when
+	*   the mouse is above it. This button has a programmable flag that acts as an ID
+	*/
+	class Button : public Displayable {
+	private:
+		string flag;
+		map<string, SDL_Texture*> textures;
+		string currPose;
+
+	public:
+		Button() : Displayable() {
+			this->type = DISP_BUTTON;
+			this->flag = util::ANONYMOUS;
+
+			this->currPose = util::ANONYMOUS;
+		}
+
+		Button(string flag) : Displayable() {
+			this->type = DISP_BUTTON;
+			this->flag = flag;
+
+			this->currPose = util::ANONYMOUS;
+		}
+
+		Button(SDL_Renderer* renderer, map<string, const char*> paths) {
+			this->x = 0;
+			this->y = 0;
+			this->w = -1;
+			this->h = -1;
+
+			this->xoffset = 0;
+			this->yoffset = 0;
+			this->woffset = 0;
+			this->hoffset = 0;
+
+			for (auto i = paths.begin(); i != paths.end(); ++i) {
+				this->textures[i->first] = util::LoadTexture(i->second, renderer);
+				if (!this->textures[i->first])
+					this->error = "Button(): Texture failed to load";
+			}
+			if (this->textures.empty())
+				this->error = "Button(): Textures failed to load";
+
+			this->destroyOnDrop = true;
+			this->error = "";
+
+			this->type = DISP_BUTTON;
+			this->flag = util::ANONYMOUS;
+
+			map<string, SDL_Texture*>::iterator i;
+			this->currPose = i->first;
+			this->img = i->second;
+		}
+
+		Button(SDL_Renderer* renderer, map<string, const char*> paths, string flag) {
+			this->x = 0;
+			this->y = 0;
+			this->w = -1;
+			this->h = -1;
+
+			this->xoffset = 0;
+			this->yoffset = 0;
+			this->woffset = 0;
+			this->hoffset = 0;
+
+			for (auto i = paths.begin(); i != paths.end(); ++i) {
+				this->textures[i->first] = util::LoadTexture(i->second, renderer);
+				if (!this->textures[i->first])
+					this->error = "Button(): Texture failed to load";
+			}
+			if (this->textures.empty())
+				this->error = "Button(): Textures failed to load";
+
+			this->destroyOnDrop = true;
+			this->error = "";
+
+			this->type = DISP_BUTTON;
+			this->flag = flag;
+
+			map<string, SDL_Texture*>::iterator i;
+			this->currPose = i->first;
+			this->img = i->second;
+		}
+
+		Button(SDL_Rect rect) :
+			Displayable(rect) {
+			this->type = DISP_BUTTON;
+			this->flag = util::ANONYMOUS;
+
+			this->currPose = util::ANONYMOUS;
+		}
+
+		Button(SDL_Rect rect, string flag) :
+			Displayable(rect) {
+			this->type = DISP_BUTTON;
+			this->flag = flag;
+
+			this->currPose = util::ANONYMOUS;
+		}
+
+		Button(int w, int h) :
+			Displayable(w, h) {
+			this->type = DISP_BUTTON;
+			this->flag = util::ANONYMOUS;
+
+			this->currPose = util::ANONYMOUS;
+		}
+
+		Button(int w, int h, string flag) :
+			Displayable(w, h) {
+			this->type = DISP_BUTTON;
+			this->flag = flag;
+
+			this->currPose = util::ANONYMOUS;
+		}
+
+		Button(SDL_Renderer* renderer, map<string, const char*> paths, int w, int h) {
+			this->x = 0;
+			this->y = 0;
+			this->w = w;
+			this->h = h;
+
+			this->xoffset = 0;
+			this->yoffset = 0;
+			this->woffset = 0;
+			this->hoffset = 0;
+
+			for (auto i = paths.begin(); i != paths.end(); ++i) {
+				this->textures[i->first] = util::LoadTexture(i->second, renderer);
+				if (!this->textures[i->first])
+					this->error = "Button(): Texture failed to load";
+			}
+			if (this->textures.empty())
+				this->error = "Button(): Textures failed to load";
+
+			this->destroyOnDrop = true;
+			this->error = "";
+
+			this->type = DISP_BUTTON;
+			this->flag = util::ANONYMOUS;
+
+			map<string, SDL_Texture*>::iterator i;
+			this->currPose = i->first;
+			this->img = i->second;
+		}
+
+		Button(SDL_Renderer* renderer, map<string,
+			const char*> paths, int w, int h, string flag) {
+			this->x = 0;
+			this->y = 0;
+			this->w = w;
+			this->h = h;
+
+			this->xoffset = 0;
+			this->yoffset = 0;
+			this->woffset = 0;
+			this->hoffset = 0;
+
+			for (auto i = paths.begin(); i != paths.end(); ++i) {
+				this->textures[i->first] = util::LoadTexture(i->second, renderer);
+				if (!this->textures[i->first])
+					this->error = "Button(): Texture failed to load";
+			}
+			if (this->textures.empty())
+				this->error = "Button(): Texture failed to load";
+
+			this->destroyOnDrop = true;
+			this->error = "";
+
+			this->type = DISP_BUTTON;
+			this->flag = flag;
+
+			map<string, SDL_Texture*>::iterator i;
+			this->currPose = i->first;
+			this->img = i->second;
+		}
+
+		Button(SDL_Renderer* renderer, map<string, const char*> paths, SDL_Rect pos) {
+			this->x = pos.x;
+			this->y = pos.y;
+			this->w = pos.w;
+			this->h = pos.h;
+
+			this->xoffset = 0;
+			this->yoffset = 0;
+			this->woffset = 0;
+			this->hoffset = 0;
+
+			for (auto i = paths.begin(); i != paths.end(); ++i) {
+				this->textures[i->first] = util::LoadTexture(i->second, renderer);
+				if (!this->textures[i->first])
+					this->error = "Button(): Texture failed to load";
+			}
+			if (this->textures.empty())
+				this->error = "Button(): Textures failed to load";
+
+			this->destroyOnDrop = true;
+			this->error = "";
+
+			this->type = DISP_BUTTON;
+			this->flag = util::ANONYMOUS;
+
+			map<string, SDL_Texture*>::iterator i;
+			this->currPose = i->first;
+			this->img = i->second;
+		}
+
+		Button(SDL_Renderer* renderer, map<string, const char*> paths,
+			SDL_Rect pos, string flag) {
+			this->x = pos.x;
+			this->y = pos.y;
+			this->w = pos.w;
+			this->h = pos.h;
+
+			this->xoffset = 0;
+			this->yoffset = 0;
+			this->woffset = 0;
+			this->hoffset = 0;
+
+			for (auto i = paths.begin(); i != paths.end(); ++i) {
+				this->textures[i->first] = util::LoadTexture(i->second, renderer);
+				if (!this->textures[i->first])
+					this->error = "Button(): Texture failed to load";
+			}
+			if (this->textures.empty())
+				this->error = "Button(): Textures failed to load";
+
+			this->destroyOnDrop = true;
+			this->error = "";
+
+			this->type = DISP_BUTTON;
+			this->flag = flag;
+
+			map<string, SDL_Texture*>::iterator i;
+			this->currPose = i->first;
+			this->img = i->second;
+		}
+
+		~Button() {
+			for (auto i = this->textures.begin(); i != this->textures.end(); ++i) {
+				if (i->second != nullptr && this->destroyOnDrop)
+					SDL_DestroyTexture(i->second);
+			}
+		}
+
+		
+		/*Detects whether a point falls within the bounds of the Displayable's Rect
+		* 
+		* Preconditions:
+		* - this->w > 0
+		* - this->h > 0
+		*
+		* Params:
+		* - x - the x coordinate of the point
+		* - y - the y coordinate of the point
+		* 
+		* Returns true IFF the point noted by (x, y) is in the rect
+		*/
+		bool collidepoint(int x, int y) const;
+
+		/*Changes the Button's displayed texture so that the proper image is
+		*  rendered to the screen
+		* 
+		* Preconditions:
+		* - 'name' must be associated with a SDL_Texture loaded in this->textures
+		* 
+		* Params:
+		* - name - the string-name associated with the SDL_Texture in this->textures
+		* 
+		* Returns true IFF the texture exists and was successfully assigned, false OW
+		*/
+		bool setPose(string name);
+
+		/*Provides the string-name associated with the texture currently displayed
+		* 
+		* Returns the string-name associated with the texture currently displayed
+		*/
+		string getPose() const;
+
+		/*Inserts an SDL_Texture into the textures list internal to the button
+		* 
+		* Preconditions:
+		* - 'name' cannot already be associated with an SDL_Texture in the button
+		* - 'path' must direct to an existant file
+		* 
+		* Params:
+		* - name - the name that will be used to access the provided texture later
+		* - path - the location of the image being loaded as a texture
+		* 
+		* Returns true IFF 'name' does not already reference an existing texture AND 
+		*  the image at 'path' was successfully opened and stored
+		*/
+		bool givePose(string name, const char* path, SDL_Renderer* renderer);
+
+		/*Provides the flag of the button for when it is pressed
+		* 
+		* Returns the button's flag/identifier
+		*/
+		string getFlag() const;
+
+		/*Assigns the button's flag
+		* 
+		* Precondition:
+		* this->flag == util::ANONYMOUS
+		* 
+		* Params:
+		* - flag - the flag/identifier being provided to the button
+		* 
+		* Returns true IFF the flag was set, false OW
+		*/
+		bool setFlag(string flag);
 	};
 }
 
