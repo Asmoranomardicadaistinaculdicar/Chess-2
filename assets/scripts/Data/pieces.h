@@ -51,6 +51,7 @@ namespace data {
 
 		int getR() const { return this->r; }
 		int getF() const { return this->f; }
+		int getMoves() const { return this->timesMoved; }
 		std::string getPos() const;
 
 		void moveTo(std::string pos);
@@ -71,6 +72,7 @@ namespace ctrl {
 			this->oldpos = this->recipient->getPos();
 		}
 
+		data::Piece* getRecipient() const { return this->recipient; }
 		void execute()   { this->recipient->moveTo(this->newpos); }
 		void unexecute() { this->recipient->moveTo(this->oldpos); }
 	};

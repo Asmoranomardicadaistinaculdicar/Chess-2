@@ -30,7 +30,7 @@ namespace util {
 	enum piece_t {
 		PAWN = 1,
 		ROOK = 3,
-		KNIGHT = 3,
+		KNIGHT = 4,
 		BISHOP = 5,
 		QUEEN = 9,
 		KING = 200

@@ -149,8 +149,14 @@ namespace ctrl {
 			if (tile->collidepoint(this->mx, this->my)) {
 				if (this->getPieceByPos(this->clickedTile) != nullptr) {
 					data::sq_Piece* piece = this->getPieceByPos(this->clickedTile);
+					std::vector<std::string> legalMoves = this->getLegalMoves(piece);
 
 					std::string newpos = this->getHoveredTile();
+					if (!util::vecContains(legalMoves, newpos)) {
+						this->clickedTile = util::ANONYMOUS;
+						continue;
+					}
+
 					this->cmdList.push(
 						new cmd_MovePiece(piece, newpos)
 					);
@@ -243,28 +249,600 @@ namespace ctrl {
 		std::vector<std::string> legalMoves;
 		if (piece == nullptr) return legalMoves;
 
+		int r0 = piece->getR();
+		int f0 = piece->getF();
+		std::string newpos = util::ANONYMOUS;
+		data::sq_Piece* endpiece = nullptr;
+
 		if (piece->getType() == util::PAWN) {
-			;
+			if (piece->getColor() == util::BLACK) {
+				if (f0 + 1 < 7) {
+					newpos = this->getPosByCoords(r0, f0 + 1);
+					endpiece = this->getPieceByPos(newpos);
+					if (endpiece == nullptr)
+						legalMoves.push_back(newpos);
+				}
+
+				if (f0 + 2 < 7) {
+					newpos = this->getPosByCoords(r0, f0 + 2);
+					endpiece = this->getPieceByPos(newpos);
+					if (piece->getMoves() == 0 && endpiece == nullptr)
+						legalMoves.push_back(newpos);
+				}
+
+				if (f0 + 1 < 7 && r0 + 1 < 7) {
+					newpos = this->getPosByCoords(r0 + 1, f0 + 1);
+					endpiece = this->getPieceByPos(newpos);
+					if (piece->getMoves() == 2 && endpiece == nullptr) {
+						data::sq_Piece* p =
+							this->getPieceByPos(this->getPosByCoords(r0 + 1, f0));
+
+						if (p != nullptr &&
+							p->getMoves() == 1 &&
+							p->getColor() != piece->getColor() &&
+							p->getType() == util::PAWN) {
+							legalMoves.push_back(newpos);
+						}
+					}
+					else if (endpiece != nullptr &&
+						endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+				}
+
+				if (f0 + 1 < 7 && r0 - 1 >= 0) {
+					newpos = this->getPosByCoords(r0 - 1, f0 + 1);
+					endpiece = this->getPieceByPos(newpos);
+					if (piece->getMoves() == 2) {
+						data::sq_Piece* p =
+							this->getPieceByPos(this->getPosByCoords(r0 - 1, f0));
+
+						if (p != nullptr &&
+							p->getMoves() == 1 &&
+							p->getColor() != piece->getColor() &&
+							p->getType() == util::PAWN) {
+							legalMoves.push_back(newpos);
+						}
+					}
+					else if (endpiece != nullptr &&
+						endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+				}
+			}
+
+			else {
+				if (f0 - 1 >= 0) {
+					newpos = this->getPosByCoords(r0, f0 - 1);
+					if (this->getPieceByPos(newpos) == nullptr)
+						legalMoves.push_back(newpos);
+				}
+
+				if (f0 - 2 >= 0) {
+					newpos = this->getPosByCoords(r0, f0 - 2);
+					if (piece->getMoves() == 0 && this->getPieceByPos(newpos) == nullptr)
+						legalMoves.push_back(newpos);
+				}
+
+				if (f0 - 1 >= 0 && r0 + 1 < 7) {
+					newpos = this->getPosByCoords(r0 + 1, f0 - 1);
+					endpiece = this->getPieceByPos(newpos);
+					if (piece->getMoves() == 2 && endpiece == nullptr) {
+						data::sq_Piece* p =
+							this->getPieceByPos(this->getPosByCoords(r0 + 1, f0));
+
+						if (p != nullptr &&
+							p->getMoves() == 1 &&
+							p->getColor() != piece->getColor() &&
+							p->getType() == util::PAWN) {
+							legalMoves.push_back(newpos);
+						}
+					}
+					else if (endpiece != nullptr && endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+				}
+
+				if (f0 - 1 >= 0 && r0 - 1 >= 0) {
+					newpos = this->getPosByCoords(r0 - 1, f0 - 1);
+					endpiece = this->getPieceByPos(newpos);
+					if (piece->getMoves() == 2) {
+						data::sq_Piece* p =
+							this->getPieceByPos(this->getPosByCoords(r0 - 1, f0));
+
+						if (p != nullptr &&
+							p->getMoves() == 1 &&
+							p->getColor() != piece->getColor() &&
+							p->getType() == util::PAWN) {
+							legalMoves.push_back(newpos);
+						}
+					}
+					else if (endpiece != nullptr && endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+				}
+			}
 		}
 
 		else if (piece->getType() == util::ROOK) {
-			;
+			for (int x = 1; x < 8; x++) {
+				if (f0 + x > 7) break;
+
+				newpos = this->getPosByCoords(r0, f0 + x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (f0 - x < 0) break;
+
+				newpos = this->getPosByCoords(r0, f0 - x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 + x > 7) break;
+
+				newpos = this->getPosByCoords(r0 + x, f0);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 - x < 0) break;
+
+				newpos = this->getPosByCoords(r0 - x, f0);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
 		}
 
 		else if (piece->getType() == util::KNIGHT) {
-			;
+			int offsets[8][2] = {
+				{-1, -2}, {-1,  2},
+				{ 1, -2}, { 1,  2},
+				{-2, -1}, {-2,  1},
+				{ 2, -1}, { 2,  1}
+			};
+
+			for (int x = 0; x < 8; x++) {
+				if (r0 + offsets[x][0] < 0 ||
+					r0 + offsets[x][0] > 7 ||
+					f0 + offsets[x][1] < 0 ||
+					f0 + offsets[x][1] > 7)
+					continue;
+
+				newpos = this->getPosByCoords(r0 + offsets[x][0], f0 + offsets[x][1]);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr && endpiece->getColor() == piece->getColor())
+					continue;
+				legalMoves.push_back(newpos);
+			}
 		}
 
 		else if (piece->getType() == util::BISHOP) {
-			;
+			for (int x = 1; x < 8; x++) {
+				if (r0 + x > 7 || f0 + x > 7) break;
+
+				newpos = this->getPosByCoords(r0 + x, f0 + x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 - x < 0 || f0 - x < 0) break;
+
+				newpos = this->getPosByCoords(r0 - x, f0 - x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 + x > 7 || f0 - x < 0) break;
+
+				newpos = this->getPosByCoords(r0 + x, f0 - x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 - x < 0 || f0 + x > 7) break;
+
+				newpos = this->getPosByCoords(r0 - x, f0 + x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
 		}
 
 		else if (piece->getType() == util::QUEEN) {
-			;
+			for (int x = 1; x < 8; x++) {
+				if (f0 + x > 7) break;
+
+				newpos = this->getPosByCoords(r0, f0 + x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (f0 - x < 0) break;
+
+				newpos = this->getPosByCoords(r0, f0 - x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 + x > 7) break;
+
+				newpos = this->getPosByCoords(r0 + x, f0);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 - x < 0) break;
+
+				newpos = this->getPosByCoords(r0 - x, f0);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 + x > 7 || f0 + x > 7) break;
+
+				newpos = this->getPosByCoords(r0 + x, f0 + x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 - x < 0 || f0 - x < 0) break;
+
+				newpos = this->getPosByCoords(r0 - x, f0 - x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 + x > 7 || f0 - x < 0) break;
+
+				newpos = this->getPosByCoords(r0 + x, f0 - x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
+
+			for (int x = 1; x < 8; x++) {
+				if (r0 - x < 0 || f0 + x > 7) break;
+
+				newpos = this->getPosByCoords(r0 - x, f0 + x);
+				endpiece = this->getPieceByPos(newpos);
+
+				if (endpiece != nullptr) {
+					if (endpiece->getColor() != piece->getColor())
+						legalMoves.push_back(newpos);
+					break;
+				}
+				else legalMoves.push_back(newpos);
+			}
 		}
 
 		else if (piece->getType() == util::KING) {
-			;
+			int offsets[8][2] = {
+				{-1, -1}, {-1, 0}, {-1, 1},
+				{ 0, -1},          { 0, 1},
+				{ 1, -1}, { 1, 0}, { 1, 1}
+			};
+
+			for (int z = 0; z < 8; z++) {
+				if (r0 + offsets[z][0] < 0 ||
+					r0 + offsets[z][0] > 7 ||
+					f0 + offsets[z][1] < 0 ||
+					f0 + offsets[z][1] > 7)
+					continue;
+
+				bool legal = true;
+				int r1 = r0 + offsets[z][0];
+				int f1 = f0 + offsets[z][1];
+				std::string kingpos = this->getPosByCoords(r1, f1);
+				endpiece = this->getPieceByPos(kingpos);
+				
+				if (endpiece != nullptr && endpiece->getColor() == piece->getColor())
+					legal = false;
+
+				//Queen and Rook
+				for (int x = 1; x < 8; x++) {
+					if (f1 + x > 7) break;
+
+					newpos = this->getPosByCoords(r1, f1 + x);
+					endpiece = this->getPieceByPos(newpos);
+
+					if (endpiece != nullptr && endpiece != piece) {
+						if (endpiece->getColor() != piece->getColor() && (
+							endpiece->getType() == util::QUEEN ||
+							endpiece->getType() == util::ROOK))
+							legal = false;
+						break;
+					}
+				}
+
+				for (int x = 1; x < 8; x++) {
+					if (f1 - x < 0) break;
+
+					newpos = this->getPosByCoords(r1, f1 - x);
+					endpiece = this->getPieceByPos(newpos);
+
+					if (endpiece != nullptr && endpiece != piece) {
+						if (endpiece->getColor() != piece->getColor() && (
+							endpiece->getType() == util::QUEEN ||
+							endpiece->getType() == util::ROOK))
+							legal = false;
+						break;
+					}
+				}
+
+				for (int x = 1; x < 8; x++) {
+					if (r1 + x > 7) break;
+
+					newpos = this->getPosByCoords(r1 + x, f1);
+					endpiece = this->getPieceByPos(newpos);
+
+					if (endpiece != nullptr && endpiece != piece) {
+						if (endpiece->getColor() != piece->getColor() && (
+							endpiece->getType() == util::QUEEN ||
+							endpiece->getType() == util::ROOK))
+							legal = false;
+						break;
+					}
+				}
+
+				for (int x = 1; x < 8; x++) {
+					if (r1 - x < 0) break;
+
+					newpos = this->getPosByCoords(r1 - x, f1);
+					endpiece = this->getPieceByPos(newpos);
+
+					if (endpiece != nullptr && endpiece != piece) {
+						if (endpiece->getColor() != piece->getColor() && (
+							endpiece->getType() == util::QUEEN ||
+							endpiece->getType() == util::ROOK))
+							legal = false;
+						break;
+					}
+				}
+
+				//Queen and Bishop
+				for (int x = 1; x < 8; x++) {
+					if (r1 + x > 7 || f1 + x > 7) break;
+
+					newpos = this->getPosByCoords(r1 + x, f1 + x);
+					endpiece = this->getPieceByPos(newpos);
+
+					if (endpiece != nullptr && endpiece != piece) {
+						if (endpiece->getColor() != piece->getColor() && (
+							endpiece->getType() == util::QUEEN ||
+							endpiece->getType() == util::BISHOP))
+							legal = false;
+						break;
+					}
+				}
+
+				for (int x = 1; x < 8; x++) {
+					if (r1 - x < 0 || f1 - x < 0) break;
+
+					newpos = this->getPosByCoords(r1 - x, f1 - x);
+					endpiece = this->getPieceByPos(newpos);
+
+					if (endpiece != nullptr && endpiece != piece) {
+						if (endpiece->getColor() != piece->getColor() && (
+							endpiece->getType() == util::QUEEN ||
+							endpiece->getType() == util::BISHOP))
+							legal = false;
+						break;
+					}
+				}
+
+				for (int x = 1; x < 8; x++) {
+					if (r1 + x > 7 || f1 - x < 0) break;
+
+					newpos = this->getPosByCoords(r1 + x, f1 - x);
+					endpiece = this->getPieceByPos(newpos);
+
+					if (endpiece != nullptr && endpiece != piece) {
+						if (endpiece->getColor() != piece->getColor() && (
+							endpiece->getType() == util::QUEEN ||
+							endpiece->getType() == util::BISHOP))
+							legal = false;
+						break;
+					}
+				}
+
+				for (int x = 1; x < 8; x++) {
+					if (r1 - x < 0 || f1 + x > 7) break;
+
+					newpos = this->getPosByCoords(r1 - x, f1 + x);
+					endpiece = this->getPieceByPos(newpos);
+
+					if (endpiece != nullptr && endpiece != piece) {
+						if (endpiece->getColor() != piece->getColor() && (
+							endpiece->getType() == util::QUEEN ||
+							endpiece->getType() == util::BISHOP))
+							legal = false;
+						break;
+					}
+				}
+
+				//Knight
+				int kn_offsets[8][2] = {
+				{-1, -2}, {-1,  2},
+				{ 1, -2}, { 1,  2},
+				{-2, -1}, {-2,  1},
+				{ 2, -1}, { 2,  1}
+				};
+
+				for (int x = 0; x < 8; x++) {
+					if (r1 + kn_offsets[x][0] < 0 ||
+						r1 + kn_offsets[x][0] > 7 ||
+						f1 + kn_offsets[x][1] < 0 ||
+						f1 + kn_offsets[x][1] > 7)
+						continue;
+
+					newpos = this->getPosByCoords(
+						r1 + kn_offsets[x][0],
+						f1 + kn_offsets[x][1]
+					);
+					endpiece = this->getPieceByPos(newpos);
+
+					if (endpiece != nullptr &&
+						endpiece->getColor() != piece->getColor() &&
+						endpiece->getType() == util::KNIGHT)
+						legal = false;
+				}
+
+				//Pawn
+				if (piece->getColor() == util::BLACK) {
+					if (f1 + 1 < 7) {
+						if (r1 + 1 < 7) {
+							newpos = this->getPosByCoords(r1 + 1, f1 + 1);
+							endpiece = this->getPieceByPos(newpos);
+							if (endpiece != nullptr &&
+								endpiece->getColor() != piece->getColor() &&
+								endpiece->getType() == util::PAWN)
+								legal = false;
+						}
+
+						if (r1 - 1 >= 0) {
+							newpos = this->getPosByCoords(r1 - 1, f1 + 1);
+							endpiece = this->getPieceByPos(newpos);
+							if (endpiece != nullptr &&
+								endpiece->getColor() != piece->getColor() &&
+								endpiece->getType() == util::PAWN)
+								legal = false;
+						}
+					}
+				}
+				else {
+					if (f1 - 1 >= 0) {
+						if (r1 + 1 < 7) {
+							newpos = this->getPosByCoords(r1 + 1, f1 - 1);
+							endpiece = this->getPieceByPos(newpos);
+							if (endpiece != nullptr &&
+								endpiece->getColor() != piece->getColor() &&
+								endpiece->getType() == util::PAWN)
+								legal = false;
+						}
+
+						if (r1 - 1 >= 0) {
+							newpos = this->getPosByCoords(r1 - 1, f1 - 1);
+							endpiece = this->getPieceByPos(newpos);
+							if (endpiece != nullptr &&
+								endpiece->getColor() != piece->getColor() &&
+								endpiece->getType() == util::PAWN)
+								legal = false;
+						}
+					}
+				}
+
+				//King
+				for (int x = 0; x < 8; x++) {
+					newpos = this->getPosByCoords(r1 + offsets[x][0], f1 + offsets[x][1]);
+					endpiece = this->getPieceByPos(newpos);
+
+					if (endpiece != nullptr &&
+						endpiece->getColor() != piece->getColor() &&
+						endpiece->getType() == util::KING)
+						legal = false;
+				}
+
+				if (legal) legalMoves.push_back(kingpos);
+			}
 		}
 
 		return legalMoves;
