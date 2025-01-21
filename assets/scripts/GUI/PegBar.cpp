@@ -185,4 +185,13 @@ namespace GUI {
 
 		return keycomp;
 	}
+
+	std::vector<string> PegBar::getKeys(int l) const {
+		std::vector<string> keycomp;
+
+		for (int x = 0; x < this->layerKeys[l].size(); x++)
+			keycomp.push_back(this->layerKeys[l][x]);
+
+		return keycomp;
+	}
 }

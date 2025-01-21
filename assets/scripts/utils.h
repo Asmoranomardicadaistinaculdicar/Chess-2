@@ -6,6 +6,7 @@
 #include <iostream>
 #include <fstream>
 #include <vector>
+#include <map>
 
 using std::cout;
 using std::endl;
@@ -18,6 +19,45 @@ namespace util {
 	static int SCREEN_HEIGHT = 720;
 
 	static std::string ANONYMOUS = "_";
+
+	static bool debug = 1;
+
+	enum disp_t {
+		DISP_BASIC,
+		DISP_BUTTON
+	};
+
+	enum piece_t {
+		PAWN = 1,
+		ROOK = 3,
+		KNIGHT = 3,
+		BISHOP = 5,
+		QUEEN = 9,
+		KING = 200
+	};
+
+	enum color_t {
+		BLACK,
+		WHITE
+	};
+
+	static std::map<piece_t, const char*> bpaths = {
+			{PAWN, "./assets/texture/pieces/b_pawn.png"},
+			{ROOK, "./assets/texture/pieces/b_rook.png"},
+			{KNIGHT, "./assets/texture/pieces/b_knight.png"},
+			{BISHOP, "./assets/texture/pieces/b_bishop.png"},
+			{QUEEN, "./assets/texture/pieces/b_queen.png"},
+			{KING, "./assets/texture/pieces/b_king.png"}
+		};
+
+	static std::map<piece_t, const char*> wpaths = {
+			{PAWN, "./assets/texture/pieces/w_pawn.png"},
+			{ROOK, "./assets/texture/pieces/w_rook.png"},
+			{KNIGHT, "./assets/texture/pieces/w_knight.png"},
+			{BISHOP, "./assets/texture/pieces/w_bishop.png"},
+			{QUEEN, "./assets/texture/pieces/w_queen.png"},
+			{KING, "./assets/texture/pieces/w_king.png"}
+		};
 
 	/* Initializes an SDL_Window that can be displayed for the player
 	* 
@@ -198,6 +238,21 @@ namespace util {
 		
 		return textvec;
 	}
+
+	template <class T>
+	inline bool vecContains(std::vector<T> vec, T element) {
+		for (int x = 0; x < vec.size(); x++)
+			if (vec[x] == element) return true;
+		return false;
+	}
+}
+
+namespace ctrl {
+	class Command {
+	public:
+		virtual void execute() = 0;
+		virtual void unexecute() = 0;
+	};
 }
 
 #endif

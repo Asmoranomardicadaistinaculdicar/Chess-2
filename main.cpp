@@ -30,7 +30,8 @@ int main(int argc, char** argv) {
 	renderer = SDL_CreateRenderer(window, -1, 0);
 	surface = SDL_GetWindowSurface(window);
 
-	ctrl::Level* currlvl = new ctrl::mainMenu(renderer);
+	//ctrl::Level* currlvl = new ctrl::mainMenu(renderer);
+	ctrl::Level* currlvl = new ctrl::std_Chess(renderer);
 
 	//Create the main game loop
 	bool RUNNING = true;
@@ -44,6 +45,8 @@ int main(int argc, char** argv) {
 
 				//Quit if the 'q' key is pressed
 				if (key == SDLK_q) RUNNING = false;
+
+				if (key == SDLK_u) currlvl->undoAction();
 			}
 
 			//Handle the window exit
@@ -74,6 +77,11 @@ int main(int argc, char** argv) {
 			if (newstate[1] == "gameselect") {
 				delete currlvl;
 				currlvl = new ctrl::gameSelect(renderer);
+			}
+
+			if (newstate[1] == "std_chess") {
+				delete currlvl;
+				currlvl = new ctrl::std_Chess(renderer);
 			}
 		}
 	}

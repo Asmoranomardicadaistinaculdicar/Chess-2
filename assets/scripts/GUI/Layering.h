@@ -189,6 +189,9 @@ namespace GUI {
 
 		//Accesses a list of all the keys in the Layer structure
 		std::vector<std::string> getKeys() const;
+
+		//Accesses a list of all the keys on a given layer in the Layer structure
+		std::vector<std::string> getKeys(int l) const;
 	};
 }
 

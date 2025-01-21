@@ -25,6 +25,7 @@ namespace ctrl {
 		virtual void update() = 0;
 		virtual void render() = 0;
 		std::string getState() { return this->state; }
+		virtual void undoAction() = 0;
 	};
 
 	class mainMenu : public Level {
@@ -77,6 +78,8 @@ namespace ctrl {
 		void handleClick();
 		void update();
 		void render();
+
+		void undoAction() { return; }
 	};
 
 	class gameSelect : public Level {
@@ -117,7 +120,11 @@ namespace ctrl {
 		void handleClick();
 		void update();
 		void render();
+
+		void undoAction() { return; }
 	};
 }
+
+#include "./std_chess.h"
 
 #endif

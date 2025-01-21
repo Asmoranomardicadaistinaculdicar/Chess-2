@@ -17,12 +17,6 @@ using std::string;
 
 //Define the GUI namespace
 namespace GUI {
-
-	enum DisplayableType {
-		DISP_BASIC,
-		DISP_BUTTON
-	};
-
 	/* The base class for an object that can be displayed on screen. Contains
 	*   position and size information/offsets, as well as a texture to render.
 	*   This should generally not be directly invoked directly but inherited
@@ -42,7 +36,7 @@ namespace GUI {
 		// dropTexture() is called. True by default
 
 		string error; //Stores any error present with the current displayable
-		DisplayableType type;
+		util::disp_t type;
 
 	public:
 		/*Default constructor, initializes all fields to null values*/
@@ -61,7 +55,7 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BASIC;
+			this->type = util::DISP_BASIC;
 		}
 
 		/*Texture constructor, loads the texture from the path and sets positional
@@ -84,7 +78,7 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BASIC;
+			this->type = util::DISP_BASIC;
 		}
 
 		/*Positional constructor, unpacks the provided rect and initializes
@@ -105,7 +99,7 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BASIC;
+			this->type = util::DISP_BASIC;
 		}
 
 		/*Sized constructor, stores the width and height, initializes the texture
@@ -126,7 +120,7 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BASIC;
+			this->type = util::DISP_BASIC;
 		}
 
 		/*Texture and size constructor, loads the texture and stores sizing
@@ -149,7 +143,7 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BASIC;
+			this->type = util::DISP_BASIC;
 		}
 
 		/*Complete constructor, loads the texture and unpacks the provided rect
@@ -172,7 +166,7 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BASIC;
+			this->type = util::DISP_BASIC;
 		}
 
 		//Destroys the texture if speficied to prevent memory leaks
@@ -333,14 +327,14 @@ namespace GUI {
 
 	public:
 		Button() : Displayable() {
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = util::ANONYMOUS;
 
 			this->currPose = util::ANONYMOUS;
 		}
 
 		Button(string flag) : Displayable() {
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = flag;
 
 			this->currPose = util::ANONYMOUS;
@@ -368,10 +362,10 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = util::ANONYMOUS;
 
-			map<string, SDL_Texture*>::iterator i;
+			map<string, SDL_Texture*>::iterator i = this->textures.begin();
 			this->currPose = i->first;
 			this->img = i->second;
 		}
@@ -398,17 +392,17 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = flag;
 
-			map<string, SDL_Texture*>::iterator i;
+			map<string, SDL_Texture*>::iterator i = this->textures.begin();
 			this->currPose = i->first;
 			this->img = i->second;
 		}
 
 		Button(SDL_Rect rect) :
 			Displayable(rect) {
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = util::ANONYMOUS;
 
 			this->currPose = util::ANONYMOUS;
@@ -416,7 +410,7 @@ namespace GUI {
 
 		Button(SDL_Rect rect, string flag) :
 			Displayable(rect) {
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = flag;
 
 			this->currPose = util::ANONYMOUS;
@@ -424,7 +418,7 @@ namespace GUI {
 
 		Button(int w, int h) :
 			Displayable(w, h) {
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = util::ANONYMOUS;
 
 			this->currPose = util::ANONYMOUS;
@@ -432,7 +426,7 @@ namespace GUI {
 
 		Button(int w, int h, string flag) :
 			Displayable(w, h) {
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = flag;
 
 			this->currPose = util::ANONYMOUS;
@@ -460,16 +454,16 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = util::ANONYMOUS;
 
-			map<string, SDL_Texture*>::iterator i;
+			map<string, SDL_Texture*>::iterator i = this->textures.begin();
 			this->currPose = i->first;
 			this->img = i->second;
 		}
 
-		Button(SDL_Renderer* renderer, map<string,
-			const char*> paths, int w, int h, string flag) {
+		Button(SDL_Renderer* renderer, map<string, const char*> paths,
+			int w, int h, string flag) {
 			this->x = 0;
 			this->y = 0;
 			this->w = w;
@@ -491,10 +485,10 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = flag;
 
-			map<string, SDL_Texture*>::iterator i;
+			map<string, SDL_Texture*>::iterator i = this->textures.begin();
 			this->currPose = i->first;
 			this->img = i->second;
 		}
@@ -521,26 +515,29 @@ namespace GUI {
 			this->destroyOnDrop = true;
 			this->error = "";
 
-			this->type = DISP_BUTTON;
+			this->type = util::DISP_BUTTON;
 			this->flag = util::ANONYMOUS;
 
-			map<string, SDL_Texture*>::iterator i;
+			map<string, SDL_Texture*>::iterator i = this->textures.begin();
 			this->currPose = i->first;
 			this->img = i->second;
 		}
 
 		Button(SDL_Renderer* renderer, map<string, const char*> paths,
 			SDL_Rect pos, string flag) {
+			std::cout << "Position initialization" << std::endl;
 			this->x = pos.x;
 			this->y = pos.y;
 			this->w = pos.w;
 			this->h = pos.h;
 
+			std::cout << "Offset initializeation" << std::endl;
 			this->xoffset = 0;
 			this->yoffset = 0;
 			this->woffset = 0;
 			this->hoffset = 0;
 
+			std::cout << "Initializing the texture list" << std::endl;
 			for (auto i = paths.begin(); i != paths.end(); ++i) {
 				this->textures[i->first] = util::LoadTexture(i->second, renderer);
 				if (!this->textures[i->first])
@@ -549,13 +546,16 @@ namespace GUI {
 			if (this->textures.empty())
 				this->error = "Button(): Textures failed to load";
 
+			std::cout << "Value initialization" << std::endl;
 			this->destroyOnDrop = true;
-			this->error = "";
+			this->error = util::ANONYMOUS;
 
-			this->type = DISP_BUTTON;
+			std::cout << "Type and flag initialization" << std::endl;
+			this->type = util::DISP_BUTTON;
 			this->flag = flag;
 
-			map<string, SDL_Texture*>::iterator i;
+			std::cout << "Default texture initialization" << std::endl;
+			map<string, SDL_Texture*>::iterator i = this->textures.begin();
 			this->currPose = i->first;
 			this->img = i->second;
 		}
