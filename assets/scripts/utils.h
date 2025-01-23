@@ -41,6 +41,11 @@ namespace util {
 		WHITE
 	};
 
+	enum cmd_t {
+		MOVE,
+		TAKE
+	};
+
 	static std::map<piece_t, const char*> bpaths = {
 			{PAWN, "./assets/texture/pieces/b_pawn.png"},
 			{ROOK, "./assets/texture/pieces/b_rook.png"},
@@ -249,9 +254,12 @@ namespace util {
 
 namespace ctrl {
 	class Command {
+	protected:
+		util::cmd_t type;
 	public:
 		virtual void execute() = 0;
 		virtual void unexecute() = 0;
+		util::cmd_t getType() const { return this->type; }
 	};
 }
 

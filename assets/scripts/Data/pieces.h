@@ -16,6 +16,7 @@ namespace data {
 		std::string ID;
 
 		int timesMoved;
+		bool taken;
 
 	public:
 		Piece() {
@@ -23,12 +24,14 @@ namespace data {
 			this->type = util::PAWN;
 			this->color = util::WHITE;
 			this->timesMoved = 0;
+			this->taken = false;
 		}
 		Piece(util::piece_t type, util::color_t color, std::string ID) {
 			this->ID = ID;
 			this->type = type;
 			this->color = color;
 			this->timesMoved = 0;
+			this->taken = false;
 		}
 		~Piece() {}
 
@@ -38,6 +41,14 @@ namespace data {
 		std::string getID() const { return this->ID; }
 		util::color_t getColor() const { return this->color; }
 		util::piece_t getType() const { return this->type; }
+
+		void toggleTake(bool taken) { this->taken = taken; }
+		bool isTaken() const { return this->taken; }
+
+		int getMoves() const { return this->timesMoved; }
+		void decMoves(int x) { this->timesMoved -= x; }
+
+		virtual void dropPos() = 0;
 	};
 
 	class sq_Piece : public Piece {
@@ -51,10 +62,10 @@ namespace data {
 
 		int getR() const { return this->r; }
 		int getF() const { return this->f; }
-		int getMoves() const { return this->timesMoved; }
 		std::string getPos() const;
 
 		void moveTo(std::string pos);
+		void dropPos() { this->r = -1; this->f = -1; }
 	};
 }
 
@@ -70,11 +81,43 @@ namespace ctrl {
 			this->recipient = recipient;
 			this->newpos = newpos;
 			this->oldpos = this->recipient->getPos();
+			this->type = util::MOVE;
 		}
 
 		data::Piece* getRecipient() const { return this->recipient; }
-		void execute()   { this->recipient->moveTo(this->newpos); }
-		void unexecute() { this->recipient->moveTo(this->oldpos); }
+		void execute() {
+			this->recipient->moveTo(this->newpos);
+		}
+		void unexecute() {
+			this->recipient->moveTo(this->oldpos);
+			this->recipient->decMoves(2);
+		}
+	};
+
+	class cmd_TakePiece : public Command {
+	private:
+		data::Piece* recipient;
+		std::string pos;
+
+	public:
+		cmd_TakePiece(data::Piece* recipient, std::string pos) {
+			this->recipient = recipient;
+			this->pos = pos;
+			this->type = util::TAKE;
+		}
+
+		data::Piece* getRecipient() const { return this->recipient; }
+		void execute() {
+			this->pos = recipient->getPos();
+			this->recipient->toggleTake(true);
+			this->recipient->dropPos();
+			//std::cout << "Piece taken" << std::endl;
+		}
+		void unexecute() {
+			this->recipient->moveTo(this->pos);
+			this->recipient->toggleTake(false);
+			//std::cout << "Piece untaken" << std::endl;
+		}
 	};
 }
 

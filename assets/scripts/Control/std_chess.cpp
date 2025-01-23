@@ -8,8 +8,12 @@
 #include "./Level.h"
 #include "./std_chess.h"
 #include "../GUI/Displayable.h"
-#include "../Data/boards.h"
 #include "../Data/pieces.h"
+
+#define BKGND_LAYER 0
+#define TILE_LAYER 1
+#define PIECE_LAYER 2
+#define HIDDEN_LAYER 3
 
 namespace ctrl {
 	std_Chess::std_Chess(SDL_Renderer* renderer) {
@@ -22,11 +26,13 @@ namespace ctrl {
 		dark_paths["neutral"] = "./assets/texture/tiles/square/dark_neutral.png";
 		dark_paths["hover"] = "./assets/texture/tiles/square/dark_hover.png";
 		dark_paths["clicked"] = "./assets/texture/tiles/square/dark_clicked.png";
+		dark_paths["checked"] = "./assets/texture/tiles/square/dark_check.png";
 
 		std::map<std::string, const char*> light_paths;
 		light_paths["neutral"] = "./assets/texture/tiles/square/light_neutral.png";
 		light_paths["hover"] = "./assets/texture/tiles/square/light_hover.png";
 		light_paths["clicked"] = "./assets/texture/tiles/square/light_clicked.png";
+		light_paths["checked"] = "./assets/texture/tiles/square/light_check.png";
 
 		char ranks[8] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' };
 
@@ -37,11 +43,11 @@ namespace ctrl {
 				dark_paths["clicked"],
 				{ 40, 50, 620, 620 }
 			),
-			0
+			BKGND_LAYER
 		);
 
-		this->assets.makeLayer(1);
-		bool dark = 0;
+		this->assets.makeLayer(TILE_LAYER);
+		bool dark = 1;
 		for (int x = 0; x < 64; x++) {
 			int r = x % 8;
 			int f = x / 8;
@@ -55,19 +61,21 @@ namespace ctrl {
 				tile->givePose("neutral", light_paths["neutral"], this->renderer);
 				tile->givePose("hover", light_paths["hover"], this->renderer);
 				tile->givePose("clicked", light_paths["clicked"], this->renderer);
+				tile->givePose("checked", light_paths["checked"], this->renderer);
 			}
 			else {
 				if (r != 7) dark = 1;
 				tile->givePose("neutral", dark_paths["neutral"], this->renderer);
 				tile->givePose("hover", dark_paths["hover"], this->renderer);
 				tile->givePose("clicked", dark_paths["clicked"], this->renderer);
+				tile->givePose("checked", dark_paths["checked"], this->renderer);
 			}
 
 			tile->setPose("neutral");
-			this->assets.insertIntoLayer(id, tile, 1);
+			this->assets.insertIntoLayer(id, tile, TILE_LAYER);
 		}
 
-		this->assets.makeLayer(2);
+		this->assets.makeLayer(PIECE_LAYER);
 
 		data::sq_Piece* piece;
 		piece = new data::sq_Piece(util::ROOK, util::WHITE, "WR1", 0, 7);
@@ -82,9 +90,9 @@ namespace ctrl {
 		this->instantiatePiece(piece);
 		piece = new data::sq_Piece(util::BISHOP, util::WHITE, "WB2", 5, 7);
 		this->instantiatePiece(piece);
-		piece = new data::sq_Piece(util::KING, util::WHITE, "WK1", 3, 7);
+		piece = new data::sq_Piece(util::KING, util::WHITE, "WK1", 4, 7);
 		this->instantiatePiece(piece);
-		piece = new data::sq_Piece(util::QUEEN, util::WHITE, "WQ1", 4, 7);
+		piece = new data::sq_Piece(util::QUEEN, util::WHITE, "WQ1", 3, 7);
 		this->instantiatePiece(piece);
 		for (int x = 0; x < 8; x++) {
 			piece = new data::sq_Piece(
@@ -105,9 +113,9 @@ namespace ctrl {
 		this->instantiatePiece(piece);
 		piece = new data::sq_Piece(util::BISHOP, util::BLACK, "BB2", 5, 0);
 		this->instantiatePiece(piece);
-		piece = new data::sq_Piece(util::KING, util::BLACK, "BK1", 3, 0);
+		piece = new data::sq_Piece(util::KING, util::BLACK, "BK1", 4, 0);
 		this->instantiatePiece(piece);
-		piece = new data::sq_Piece(util::QUEEN, util::BLACK, "BQ1", 4, 0);
+		piece = new data::sq_Piece(util::QUEEN, util::BLACK, "BQ1", 3, 0);
 		this->instantiatePiece(piece);
 		for (int x = 0; x < 8; x++) {
 			piece = new data::sq_Piece(
@@ -115,6 +123,9 @@ namespace ctrl {
 			);
 			this->instantiatePiece(piece);
 		}
+
+		this->assets.makeLayer(HIDDEN_LAYER);
+		this->assets.disableLayer(HIDDEN_LAYER);
 	}
 
 	bool std_Chess::instantiatePiece(data::sq_Piece* piece) {
@@ -135,7 +146,7 @@ namespace ctrl {
 				this->renderer, path,
 				{ 50 + 75 * piece->getR(), 60 + 75 * piece->getF(), 75, 75 }
 			),
-			2
+			PIECE_LAYER
 		);
 		return true;
 	}
@@ -143,10 +154,11 @@ namespace ctrl {
 	void std_Chess::handleClick() {
 		SDL_GetMouseState(&this->mx, &this->my);
 
-		for (std::string key : this->assets.getKeys(1)) {
+		for (std::string key : this->assets.getKeys(TILE_LAYER)) {
 			GUI::Button* tile = (GUI::Button*)this->assets.getAssetByKey(key);
 
 			if (tile->collidepoint(this->mx, this->my)) {
+
 				if (this->getPieceByPos(this->clickedTile) != nullptr) {
 					data::sq_Piece* piece = this->getPieceByPos(this->clickedTile);
 					std::vector<std::string> legalMoves = this->getLegalMoves(piece);
@@ -157,10 +169,31 @@ namespace ctrl {
 						continue;
 					}
 
+					data::sq_Piece* victim = this->getPieceByPos(newpos);
+					int f = piece->getF();
+
 					this->cmdList.push(
 						new cmd_MovePiece(piece, newpos)
 					);
 					this->cmdList.top()->execute();
+
+					if (victim != nullptr) {
+						this->cmdList.push(
+							new cmd_TakePiece(victim, newpos)
+						);
+						this->cmdList.top()->execute();
+					}
+					else if (piece->getType() == util::PAWN) {
+						victim = this->getPieceByPos(
+							this->getPosByCoords(piece->getR(), f)
+						);
+						if (victim != nullptr) {
+							this->cmdList.push(
+								new cmd_TakePiece(victim, newpos)
+							);
+							this->cmdList.top()->execute();
+						}
+					}
 
 					this->clickedTile = util::ANONYMOUS;
 				}
@@ -175,6 +208,9 @@ namespace ctrl {
 			else tile->setPose("neutral");
 		}
 
+		if (this->inCheckmate(util::BLACK)) std::cout << "White Wins" << std::endl;
+		if (this->inCheckmate(util::WHITE)) std::cout << "Black Wins" << std::endl;
+
 		return;
 	}
 
@@ -184,7 +220,8 @@ namespace ctrl {
 		std::vector<std::string> legalMoves =
 			this->getLegalMoves(this->getPieceByPos(this->clickedTile));
 
-		for (std::string key : this->assets.getKeys(1)) {
+		//Tiles layer
+		for (std::string key : this->assets.getKeys(TILE_LAYER)) {
 			GUI::Button* tile = (GUI::Button*)this->assets.getAssetByKey(key);
 
 			if (key == this->clickedTile) continue;
@@ -198,14 +235,32 @@ namespace ctrl {
 				if (tile->collidepoint(this->mx, this->my)) tile->setPose("hover");
 				else tile->setPose("neutral");
 			}
+
+			data::sq_Piece* piece = this->getPieceByPos(key);
+			if (piece != nullptr && piece->getType() == util::KING)
+				if (this->inCheck(piece->getColor())) tile->setPose("checked");
 		}
 
-		for (std::string key : this->assets.getKeys(2)) {
+		//Piece layer
+		for (std::string key : this->assets.getKeys(PIECE_LAYER)) {
 			GUI::Displayable* pieceDisp = this->assets.getAssetByKey(key);
 			data::sq_Piece* pieceRep = this->pieceList.at(key);
 
+			if (pieceRep->isTaken()) {
+				this->assets.moveAssetToLayer(key, HIDDEN_LAYER);
+				continue;
+			}
+
 			pieceDisp->setX(50 + 75 * pieceRep->getR());
 			pieceDisp->setY(60 + 75 * pieceRep->getF());
+		}
+
+		//Hidden layer
+		for (std::string key : this->assets.getKeys(HIDDEN_LAYER)) {
+			data::sq_Piece* pieceRep = this->pieceList.at(key);
+
+			if (!pieceRep->isTaken())
+				this->assets.moveAssetToLayer(key, PIECE_LAYER);
 		}
 
 		return;
@@ -213,7 +268,9 @@ namespace ctrl {
 
 	data::sq_Piece* std_Chess::getPieceByPos(std::string pos) const {
 		for (auto i = this->pieceList.begin(); i != this->pieceList.end(); i++)
-			if (i->second->getPos() == pos) return i->second;
+			if (i->second->getPos() == pos && !i->second->isTaken())
+				return i->second;
+
 		return nullptr;
 	}
 
@@ -249,6 +306,7 @@ namespace ctrl {
 		std::vector<std::string> legalMoves;
 		if (piece == nullptr) return legalMoves;
 
+		bool endangers;
 		int r0 = piece->getR();
 		int f0 = piece->getF();
 		std::string newpos = util::ANONYMOUS;
@@ -259,20 +317,23 @@ namespace ctrl {
 				if (f0 + 1 < 7) {
 					newpos = this->getPosByCoords(r0, f0 + 1);
 					endpiece = this->getPieceByPos(newpos);
-					if (endpiece == nullptr)
+					endangers = this->moveEndangers(piece, newpos);
+					if (endpiece == nullptr && !endangers)
 						legalMoves.push_back(newpos);
 				}
 
 				if (f0 + 2 < 7) {
 					newpos = this->getPosByCoords(r0, f0 + 2);
 					endpiece = this->getPieceByPos(newpos);
-					if (piece->getMoves() == 0 && endpiece == nullptr)
+					endangers = this->moveEndangers(piece, newpos);
+					if (piece->getMoves() == 0 && endpiece == nullptr && !endangers)
 						legalMoves.push_back(newpos);
 				}
 
 				if (f0 + 1 < 7 && r0 + 1 < 7) {
 					newpos = this->getPosByCoords(r0 + 1, f0 + 1);
 					endpiece = this->getPieceByPos(newpos);
+					endangers = this->moveEndangers(piece, newpos);
 					if (piece->getMoves() == 2 && endpiece == nullptr) {
 						data::sq_Piece* p =
 							this->getPieceByPos(this->getPosByCoords(r0 + 1, f0));
@@ -280,18 +341,21 @@ namespace ctrl {
 						if (p != nullptr &&
 							p->getMoves() == 1 &&
 							p->getColor() != piece->getColor() &&
-							p->getType() == util::PAWN) {
+							p->getType() == util::PAWN &&
+							!endangers) {
 							legalMoves.push_back(newpos);
 						}
 					}
 					else if (endpiece != nullptr &&
-						endpiece->getColor() != piece->getColor())
+						endpiece->getColor() != piece->getColor() &&
+						!endangers)
 						legalMoves.push_back(newpos);
 				}
 
 				if (f0 + 1 < 7 && r0 - 1 >= 0) {
 					newpos = this->getPosByCoords(r0 - 1, f0 + 1);
 					endpiece = this->getPieceByPos(newpos);
+					endangers = this->moveEndangers(piece, newpos);
 					if (piece->getMoves() == 2) {
 						data::sq_Piece* p =
 							this->getPieceByPos(this->getPosByCoords(r0 - 1, f0));
@@ -299,12 +363,14 @@ namespace ctrl {
 						if (p != nullptr &&
 							p->getMoves() == 1 &&
 							p->getColor() != piece->getColor() &&
-							p->getType() == util::PAWN) {
+							p->getType() == util::PAWN &&
+							!endangers) {
 							legalMoves.push_back(newpos);
 						}
 					}
 					else if (endpiece != nullptr &&
-						endpiece->getColor() != piece->getColor())
+						endpiece->getColor() != piece->getColor() &&
+						!endangers)
 						legalMoves.push_back(newpos);
 				}
 			}
@@ -312,19 +378,24 @@ namespace ctrl {
 			else {
 				if (f0 - 1 >= 0) {
 					newpos = this->getPosByCoords(r0, f0 - 1);
-					if (this->getPieceByPos(newpos) == nullptr)
+					endpiece = this->getPieceByPos(newpos);
+					endangers = this->moveEndangers(piece, newpos);
+					if (endpiece == nullptr && !endangers)
 						legalMoves.push_back(newpos);
 				}
 
 				if (f0 - 2 >= 0) {
 					newpos = this->getPosByCoords(r0, f0 - 2);
-					if (piece->getMoves() == 0 && this->getPieceByPos(newpos) == nullptr)
+					endpiece = this->getPieceByPos(newpos);
+					endangers = this->moveEndangers(piece, newpos);
+					if (piece->getMoves() == 0 && endpiece == nullptr && !endangers)
 						legalMoves.push_back(newpos);
 				}
 
 				if (f0 - 1 >= 0 && r0 + 1 < 7) {
 					newpos = this->getPosByCoords(r0 + 1, f0 - 1);
 					endpiece = this->getPieceByPos(newpos);
+					endangers = this->moveEndangers(piece, newpos);
 					if (piece->getMoves() == 2 && endpiece == nullptr) {
 						data::sq_Piece* p =
 							this->getPieceByPos(this->getPosByCoords(r0 + 1, f0));
@@ -332,17 +403,21 @@ namespace ctrl {
 						if (p != nullptr &&
 							p->getMoves() == 1 &&
 							p->getColor() != piece->getColor() &&
-							p->getType() == util::PAWN) {
+							p->getType() == util::PAWN &&
+							!endangers) {
 							legalMoves.push_back(newpos);
 						}
 					}
-					else if (endpiece != nullptr && endpiece->getColor() != piece->getColor())
+					else if (endpiece != nullptr &&
+						endpiece->getColor() != piece->getColor() &&
+						!endangers)
 						legalMoves.push_back(newpos);
 				}
 
 				if (f0 - 1 >= 0 && r0 - 1 >= 0) {
 					newpos = this->getPosByCoords(r0 - 1, f0 - 1);
 					endpiece = this->getPieceByPos(newpos);
+					endangers = this->moveEndangers(piece, newpos);
 					if (piece->getMoves() == 2) {
 						data::sq_Piece* p =
 							this->getPieceByPos(this->getPosByCoords(r0 - 1, f0));
@@ -350,11 +425,14 @@ namespace ctrl {
 						if (p != nullptr &&
 							p->getMoves() == 1 &&
 							p->getColor() != piece->getColor() &&
-							p->getType() == util::PAWN) {
+							p->getType() == util::PAWN &&
+							!endangers) {
 							legalMoves.push_back(newpos);
 						}
 					}
-					else if (endpiece != nullptr && endpiece->getColor() != piece->getColor())
+					else if (endpiece != nullptr &&
+						endpiece->getColor() != piece->getColor() &&
+						!endangers)
 						legalMoves.push_back(newpos);
 				}
 			}
@@ -366,13 +444,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0, f0 + x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -380,13 +459,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0, f0 - x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -394,13 +474,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 + x, f0);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -408,13 +489,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 - x, f0);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 		}
 
@@ -435,9 +517,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 + offsets[x][0], f0 + offsets[x][1]);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
-				if (endpiece != nullptr && endpiece->getColor() == piece->getColor())
+				if (endpiece != nullptr &&
+					endpiece->getColor() == piece->getColor())
 					continue;
+
+				if (endangers) continue;
+
 				legalMoves.push_back(newpos);
 			}
 		}
@@ -448,13 +535,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 + x, f0 + x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -462,13 +550,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 - x, f0 - x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -476,13 +565,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 + x, f0 - x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
-				if (endpiece != nullptr) {
+				if (endpiece != nullptr && !endangers) {
 					if (endpiece->getColor() != piece->getColor())
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -490,13 +580,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 - x, f0 + x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 		}
 
@@ -506,13 +597,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0, f0 + x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -520,13 +612,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0, f0 - x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -534,13 +627,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 + x, f0);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -548,13 +642,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 - x, f0);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -562,13 +657,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 + x, f0 + x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -576,13 +672,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 - x, f0 - x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -590,13 +687,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 + x, f0 - x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 
 			for (int x = 1; x < 8; x++) {
@@ -604,13 +702,14 @@ namespace ctrl {
 
 				newpos = this->getPosByCoords(r0 - x, f0 + x);
 				endpiece = this->getPieceByPos(newpos);
+				endangers = this->moveEndangers(piece, newpos);
 
 				if (endpiece != nullptr) {
-					if (endpiece->getColor() != piece->getColor())
+					if (endpiece->getColor() != piece->getColor() && !endangers)
 						legalMoves.push_back(newpos);
 					break;
 				}
-				else legalMoves.push_back(newpos);
+				else if (!endangers) legalMoves.push_back(newpos);
 			}
 		}
 
@@ -846,5 +945,258 @@ namespace ctrl {
 		}
 
 		return legalMoves;
+	}
+
+	bool std_Chess::inCheck(util::color_t color) const {
+		bool legal = true;
+		data::sq_Piece* king = this->pieceList.at("WK1");
+		if (color == util::BLACK) king = this->pieceList.at("BK1");
+
+		int r1 = king->getR();
+		int f1 = king->getF();
+		std::string newpos = util::ANONYMOUS;
+		data::sq_Piece* endpiece = nullptr;
+
+		//Queen and Rook
+		for (int x = 1; x < 8; x++) {
+			if (f1 + x > 7) break;
+
+			newpos = this->getPosByCoords(r1, f1 + x);
+			endpiece = this->getPieceByPos(newpos);
+
+			if (endpiece != nullptr) {
+				if (endpiece->getColor() != king->getColor() && (
+					endpiece->getType() == util::QUEEN ||
+					endpiece->getType() == util::ROOK))
+					legal = false;
+				break;
+			}
+		}
+
+		for (int x = 1; x < 8; x++) {
+			if (f1 - x < 0) break;
+
+			newpos = this->getPosByCoords(r1, f1 - x);
+			endpiece = this->getPieceByPos(newpos);
+
+			if (endpiece != nullptr) {
+				if (endpiece->getColor() != king->getColor() && (
+					endpiece->getType() == util::QUEEN ||
+					endpiece->getType() == util::ROOK))
+					legal = false;
+				break;
+			}
+		}
+
+		for (int x = 1; x < 8; x++) {
+			if (r1 + x > 7) break;
+
+			newpos = this->getPosByCoords(r1 + x, f1);
+			endpiece = this->getPieceByPos(newpos);
+
+			if (endpiece != nullptr) {
+				if (endpiece->getColor() != king->getColor() && (
+					endpiece->getType() == util::QUEEN ||
+					endpiece->getType() == util::ROOK))
+					legal = false;
+				break;
+			}
+		}
+
+		for (int x = 1; x < 8; x++) {
+			if (r1 - x < 0) break;
+
+			newpos = this->getPosByCoords(r1 - x, f1);
+			endpiece = this->getPieceByPos(newpos);
+
+			if (endpiece != nullptr) {
+				if (endpiece->getColor() != king->getColor() && (
+					endpiece->getType() == util::QUEEN ||
+					endpiece->getType() == util::ROOK))
+					legal = false;
+				break;
+			}
+		}
+
+		//Queen and Bishop
+		for (int x = 1; x < 8; x++) {
+			if (r1 + x > 7 || f1 + x > 7) break;
+
+			newpos = this->getPosByCoords(r1 + x, f1 + x);
+			endpiece = this->getPieceByPos(newpos);
+
+			if (endpiece != nullptr) {
+				if (endpiece->getColor() != king->getColor() && (
+					endpiece->getType() == util::QUEEN ||
+					endpiece->getType() == util::BISHOP))
+					legal = false;
+				break;
+			}
+		}
+
+		for (int x = 1; x < 8; x++) {
+			if (r1 - x < 0 || f1 - x < 0) break;
+
+			newpos = this->getPosByCoords(r1 - x, f1 - x);
+			endpiece = this->getPieceByPos(newpos);
+
+			if (endpiece != nullptr) {
+				if (endpiece->getColor() != king->getColor() && (
+					endpiece->getType() == util::QUEEN ||
+					endpiece->getType() == util::BISHOP))
+					legal = false;
+				break;
+			}
+		}
+
+		for (int x = 1; x < 8; x++) {
+			if (r1 + x > 7 || f1 - x < 0) break;
+
+			newpos = this->getPosByCoords(r1 + x, f1 - x);
+			endpiece = this->getPieceByPos(newpos);
+
+			if (endpiece != nullptr) {
+				if (endpiece->getColor() != king->getColor() && (
+					endpiece->getType() == util::QUEEN ||
+					endpiece->getType() == util::BISHOP))
+					legal = false;
+				break;
+			}
+		}
+
+		for (int x = 1; x < 8; x++) {
+			if (r1 - x < 0 || f1 + x > 7) break;
+
+			newpos = this->getPosByCoords(r1 - x, f1 + x);
+			endpiece = this->getPieceByPos(newpos);
+
+			if (endpiece != nullptr) {
+				if (endpiece->getColor() != king->getColor() && (
+					endpiece->getType() == util::QUEEN ||
+					endpiece->getType() == util::BISHOP))
+					legal = false;
+				break;
+			}
+		}
+
+		//Knight
+		int kn_offsets[8][2] = {
+			{-1, -2}, {-1,  2},
+			{ 1, -2}, { 1,  2},
+			{-2, -1}, {-2,  1},
+			{ 2, -1}, { 2,  1}
+		};
+
+		for (int x = 0; x < 8; x++) {
+			if (r1 + kn_offsets[x][0] < 0 ||
+				r1 + kn_offsets[x][0] > 7 ||
+				f1 + kn_offsets[x][1] < 0 ||
+				f1 + kn_offsets[x][1] > 7)
+				continue;
+
+			newpos = this->getPosByCoords(
+				r1 + kn_offsets[x][0],
+				f1 + kn_offsets[x][1]
+			);
+			endpiece = this->getPieceByPos(newpos);
+
+			if (endpiece != nullptr &&
+				endpiece->getColor() != king->getColor() &&
+				endpiece->getType() == util::KNIGHT)
+				legal = false;
+		}
+
+		//Pawn
+		if (king->getColor() == util::BLACK) {
+			if (f1 + 1 < 7) {
+				if (r1 + 1 < 7) {
+					newpos = this->getPosByCoords(r1 + 1, f1 + 1);
+					endpiece = this->getPieceByPos(newpos);
+					if (endpiece != nullptr &&
+						endpiece->getColor() != king->getColor() &&
+						endpiece->getType() == util::PAWN)
+						legal = false;
+				}
+
+				if (r1 - 1 >= 0) {
+					newpos = this->getPosByCoords(r1 - 1, f1 + 1);
+					endpiece = this->getPieceByPos(newpos);
+					if (endpiece != nullptr &&
+						endpiece->getColor() != king->getColor() &&
+						endpiece->getType() == util::PAWN)
+						legal = false;
+				}
+			}
+		}
+		else {
+			if (f1 - 1 >= 0) {
+				if (r1 + 1 < 7) {
+					newpos = this->getPosByCoords(r1 + 1, f1 - 1);
+					endpiece = this->getPieceByPos(newpos);
+					if (endpiece != nullptr &&
+						endpiece->getColor() != king->getColor() &&
+						endpiece->getType() == util::PAWN)
+						legal = false;
+				}
+
+				if (r1 - 1 >= 0) {
+					newpos = this->getPosByCoords(r1 - 1, f1 - 1);
+					endpiece = this->getPieceByPos(newpos);
+					if (endpiece != nullptr &&
+						endpiece->getColor() != king->getColor() &&
+						endpiece->getType() == util::PAWN)
+						legal = false;
+				}
+			}
+		}
+
+		return !legal;
+	}
+
+	bool std_Chess::inCheckmate(util::color_t color) const {
+		std::cout << "Checking Checkmate for " << color << std::endl;
+		for (auto i = this->pieceList.begin(); i != this->pieceList.end(); i++) {
+			data::sq_Piece* piece = i->second;
+
+			if (piece->getColor() != color) continue;
+			std::vector<std::string> legalMoves = this->getLegalMoves(piece);
+			if (legalMoves.size() != 0) {
+				std::cout << "Found legal moves for piece " << piece->getID();
+				std::cout << " at " << piece->getPos() << std::endl;
+				for (std::string s : legalMoves)
+					std::cout << "  - " << s << std::endl;
+				return false;
+			}
+		}
+
+		return true;
+	}
+
+	bool std_Chess::moveEndangers(data::sq_Piece* piece, std::string dest) const {
+		std::cout << "Checking legal move for piece " << piece->getID();
+		std::cout << " moving to position " << dest << std::endl;
+		if (!this->inCheck(piece->getColor())) return false;
+
+		data::sq_Piece* victim = this->getPieceByPos(dest);
+
+		cmd_MovePiece cmd0(piece, dest);
+		cmd_TakePiece cmd1(victim, dest);
+
+		cmd0.execute();
+		if (victim != nullptr) cmd1.execute();
+
+		bool endangers = this->inCheck(piece->getColor());
+
+		std::cout << "  Move found to ";
+		if (!endangers) std::cout << "not ";
+		std::cout << "cause checkmate for ";
+		if (piece->getColor() == util::BLACK) std::cout << "black ";
+		else std::cout << "white";
+		std::cout << std::endl;
+
+		cmd0.unexecute();
+		if (victim != nullptr) cmd1.unexecute();
+
+		return endangers;
 	}
 }

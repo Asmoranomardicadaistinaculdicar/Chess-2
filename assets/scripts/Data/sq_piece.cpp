@@ -27,6 +27,8 @@ namespace data {
 	}
 
 	std::string sq_Piece::getPos() const {
+		if (this->taken) return util::ANONYMOUS;
+
 		char ranks[8] = { 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h' };
 		std::string pos = ranks[this->r] + std::to_string(this->f);
 		return pos;

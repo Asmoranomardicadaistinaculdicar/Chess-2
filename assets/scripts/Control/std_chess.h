@@ -8,7 +8,6 @@
 
 #include "./Level.h"
 #include "../GUI/Displayable.h"
-#include "../Data/boards.h"
 #include "../Data/pieces.h"
 
 namespace ctrl {
@@ -27,6 +26,11 @@ namespace ctrl {
 		std::pair<int, int> getCoordsByPos(std::string pos) const;
 
 		std::vector<std::string> getLegalMoves(data::sq_Piece* piece) const;
+
+		bool inCheck(util::color_t color) const;
+		bool inCheckmate(util::color_t color) const;
+		bool moveEndangers(data::sq_Piece* piece, std::string dest) const;
+		bool moveEscapes(data::sq_Piece* piece, std::string dest) const;
 
 	public:
 		std_Chess(SDL_Renderer* renderer);
@@ -49,8 +53,14 @@ namespace ctrl {
 
 		void undoAction() {
 			if (this->cmdList.empty()) return;
-			this->cmdList.top()->unexecute();
-			this->cmdList.pop();
+
+			bool chain = true;
+			while (chain) {
+				this->cmdList.top()->unexecute();
+				if (cmdList.top()->getType() == util::MOVE)
+					chain = false;
+				this->cmdList.pop();
+			}
 		}
 	};
 }

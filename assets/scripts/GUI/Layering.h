@@ -30,6 +30,8 @@ namespace GUI {
 		std::vector<std::vector<std::string>> layerKeys;
 		//This stores the last error flagged in the PegBar
 		std::string error;
+		//Stores whether a layer is enabled or not
+		std::vector<bool> enabled;
 
 		/*Checks whether a layer already exists in the structure
 		*
@@ -192,6 +194,16 @@ namespace GUI {
 
 		//Accesses a list of all the keys on a given layer in the Layer structure
 		std::vector<std::string> getKeys(int l) const;
+
+		//Enables a layer for rendering
+		bool enableLayer(uint16_t x);
+		//Disables a layer for rendering
+		bool disableLayer(uint16_t x);
+		//CHecks whether a layer is enabled
+		bool isEnabled(uint16_t x) const;
+
+		//Moves an asset from whichever layer it's found on to a different one
+		bool moveAssetToLayer(std::string key, int newLayer);
 	};
 }
 

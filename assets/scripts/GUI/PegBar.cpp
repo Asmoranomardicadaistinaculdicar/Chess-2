@@ -12,6 +12,7 @@ using std::string;
 namespace GUI {
 	//Private
 	bool PegBar::layerExists(uint16_t i) const { return i < this->layers.size(); }
+
 	uint16_t PegBar::countLayers() const { return this->layers.size(); }
 
 	//Public
@@ -24,6 +25,7 @@ namespace GUI {
 		//Create new entries in the layer and layer key structures
 		this->layers.push_back(std::map<string, Displayable*>());
 		this->layerKeys.push_back(std::vector<string>());
+		this->enabled.push_back(true);
 
 		//If the layer already exists, shift everything backward one
 		if (exists) {
@@ -37,6 +39,10 @@ namespace GUI {
 				std::vector<string> tempK = this->layerKeys[x];
 				this->layerKeys[x] = this->layerKeys[x - 1];
 				this->layerKeys[x - 1] = tempK;
+
+				bool tempB = this->enabled[x];
+				this->enabled[x] = this->enabled[x - 1];
+				this->enabled[x - 1] = tempB;
 			}
 		}
 
@@ -63,6 +69,10 @@ namespace GUI {
 			std::vector<string> tempK = this->layerKeys[x];
 			this->layerKeys[x] = this->layerKeys[x + 1];
 			this->layerKeys[x + 1] = tempK;
+
+			bool tempB = this->enabled[x];
+			this->enabled[x] = this->enabled[x + 1];
+			this->enabled[x + 1] = tempB;
 		}
 
 		//Destroy the contents of the layers box if applicable
@@ -75,6 +85,7 @@ namespace GUI {
 		//Pop the final layer off of the structure
 		this->layers.pop_back();
 		this->layerKeys.pop_back();
+		this->enabled.pop_back();
 
 		return true;
 	}
@@ -111,22 +122,25 @@ namespace GUI {
 		//Get the layer index of the asset being removed
 		int32_t i = this->getLayerByKey(key);
 		if (i == -1) {
-			this->error = "PegBar.removeAsset(): Asset not found";
+			this->error = "PegBar.removeAsset() : Asset not found";
 			return false;
 		}
 
-		//Remove the index from the layer
-		if (wipeAsset) delete this->layers[i][key];
-		this->layers[i].erase(key);
-
 		//Remove the key from the key list
 		int del = -1;
-		for (int x = 0; x < this->layerKeys[i].size() - 1; x++)
+		for (int x = 0; x < this->layerKeys[i].size(); x++) {
 			if (this->layerKeys[i][x] == key) { del = x; break; }
+		}
 
 		//Swap the target Displayable
-		this->layerKeys[i][del] = this->layerKeys[i][this->layerKeys[i].size() - 1];
-		this->layerKeys.pop_back();
+		if (this->layerKeys[i].size() != 1 && this->layerKeys[i].size() != 0)
+			this->layerKeys[i][del] = this->layerKeys[i][this->layerKeys[i].size() - 1];
+		if (this->layerKeys[i].size() != 0)
+			this->layerKeys[i].pop_back();
+
+		//Remove the index from the layer;
+		if (wipeAsset) delete this->layers[i][key];
+		this->layers[i].erase(key);
 
 		return true;
 	}
@@ -136,6 +150,7 @@ namespace GUI {
 
 		//Iterate through each layer in the structure
 		for (int x = 0; x < this->layers.size(); x++) {
+			if (!this->enabled[x]) continue;
 			//For each layer, iterate through the Displayables and render them
 			for (int y = 0; y < this->layerKeys[x].size(); y++) {
 				string currKey = this->layerKeys[x][y];
@@ -169,7 +184,10 @@ namespace GUI {
 		int32_t index = -1;
 		//Iterate through to find the index of the provided key
 		for (int x = 0; x < this->layers.size(); x++)
-			if (this->layers[x].count(key)) index = x;
+			//if (this->layers[x].count(key)) index = x;
+			for (auto i = this->layers[x].begin(); i != this->layers[x].end(); i++)
+				if (i->first == key) return x;
+
 		//Return the index. If not found, this value will remain -1
 		return index;
 	}
@@ -193,5 +211,38 @@ namespace GUI {
 			keycomp.push_back(this->layerKeys[l][x]);
 
 		return keycomp;
+	}
+
+	bool PegBar::enableLayer(uint16_t x) {
+		if (!this->layerExists(x)) {
+			this->error = "PegBar.enableLayer(): Layer does not exist";
+			return false;
+		}
+		this->enabled[x] = true;
+		return true;
+	}
+
+	bool PegBar::disableLayer(uint16_t x) {
+		if (!this->layerExists(x)) {
+			this->error = "PegBar.disableLayer(): Layer does not exist";
+			return false;
+		}
+		this->enabled[x] = false;
+		return true;
+	}
+	
+	bool PegBar::isEnabled(uint16_t x) const {
+		if (!this->layerExists(x)) return false;
+		return this->enabled[x];
+	}
+
+	bool PegBar::moveAssetToLayer(std::string key, int newLayer) {
+		if (!this->layerExists(newLayer)) this->makeLayer(newLayer);
+		GUI::Displayable* asset = this->getAssetByKey(key);
+
+		if (!this->removeAsset(key, false)) return false;
+		this->insertIntoLayer(key, asset, newLayer);
+
+		return true;
 	}
 }
